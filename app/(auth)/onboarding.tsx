@@ -1,8 +1,10 @@
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
+  Animated,
   FlatList,
   Image,
+  PanResponder,
   Pressable,
   StyleSheet,
   Text,
@@ -23,33 +25,33 @@ import { fonts, typography } from '@/theme/typography';
 
 type OnboardingSlide = {
   id: string;
-  eyebrow: string;
-  headline: string;
+  title: string[];
+  ghost: string;
   body: string;
-  scene: 'events' | 'people' | 'safety';
+  cards: [string, string, string];
 };
 
 const slides: OnboardingSlide[] = [
   {
     id: 'events',
-    eyebrow: 'Explore nearby',
-    headline: 'Find events near you',
+    title: ['Find events', 'near you'],
+    ghost: 'Discover',
     body: 'Discover concerts, treks, meetups, and more around you.',
-    scene: 'events',
+    cards: ['Concerts', 'Treks', 'Meetups'],
   },
   {
     id: 'people',
-    eyebrow: 'Vibe match',
-    headline: 'Find your people',
+    title: ['Find your', 'people'],
+    ghost: 'Together',
     body: 'Match with others going to the same event based on vibe and interests.',
-    scene: 'people',
+    cards: ['Vibe match', 'Shared tags', 'Buddy groups'],
   },
   {
     id: 'safety',
-    eyebrow: 'Trust first',
-    headline: 'Go together, safely',
+    title: ['Go together,', 'safely'],
+    ghost: 'Protected',
     body: 'Verified buddies, live location sharing, and trust ratings keep you safe.',
-    scene: 'safety',
+    cards: ['Verified', 'Live location', 'Trust score'],
   },
 ];
 
@@ -67,21 +69,34 @@ export default function OnboardingRoute() {
     setCurrentIndex(nextIndex);
   }
 
-  function handleSkip() {
-    listRef.current?.scrollToIndex({ index: lastIndex, animated: true });
-    setCurrentIndex(lastIndex);
+  function goToSlide(index: number) {
+    listRef.current?.scrollToIndex({ index, animated: true });
+    setCurrentIndex(index);
   }
 
-  async function handleGetStarted() {
+  function handleSkip() {
+    goToSlide(lastIndex);
+  }
+
+  async function finishOnboarding() {
     await setOnboardingSeen();
-    router.replace('/(auth)/signup');
+    router.replace('/(auth)/login');
+  }
+
+  function handleNextPress() {
+    goToSlide(currentIndex + 1);
   }
 
   const renderItem: ListRenderItem<OnboardingSlide> = ({ item }) => (
     <View style={[styles.slide, { width }]}>
-      <Illustration scene={item.scene} />
-      <Text style={styles.eyebrow}>{item.eyebrow}</Text>
-      <Text style={styles.headline}>{item.headline}</Text>
+      <View style={styles.copyBlock}>
+        <Text style={styles.titleLine}>{item.title[0]}</Text>
+        <Text style={styles.titleLine}>{item.title[1]}</Text>
+        <Text style={styles.ghostWord}>{item.ghost}</Text>
+      </View>
+
+      <FeatureCards slide={item} />
+
       <Text style={styles.body}>{item.body}</Text>
     </View>
   );
@@ -101,6 +116,7 @@ export default function OnboardingRoute() {
         keyExtractor={(item) => item.id}
         horizontal
         pagingEnabled
+        scrollEnabled={!isLastSlide}
         bounces={false}
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={handleMomentumScrollEnd}
@@ -118,32 +134,93 @@ export default function OnboardingRoute() {
         </View>
 
         {isLastSlide ? (
-          <Pressable onPress={handleGetStarted} style={styles.primaryButton}>
-            <Text style={styles.primaryButtonLabel}>Get Started</Text>
-          </Pressable>
+          <SlideToLogin width={width - spacing.base * 2} onComplete={finishOnboarding} />
         ) : (
-          <View style={styles.buttonSpacer} />
+          <Pressable onPress={handleNextPress} style={styles.primaryButton}>
+            <Text style={styles.primaryButtonLabel}>Next</Text>
+          </Pressable>
         )}
       </View>
     </SafeAreaView>
   );
 }
 
-function Illustration({ scene }: { scene: OnboardingSlide['scene'] }) {
+function SlideToLogin({ width, onComplete }: { width: number; onComplete: () => Promise<void> }) {
+  const thumbSize = 56;
+  const maxTranslate = Math.max(width - thumbSize - spacing.xs * 2, 0);
+  const translateX = useRef(new Animated.Value(0)).current;
+  const hasCompleted = useRef(false);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponderCapture: () => true,
+      onPanResponderMove: (_event, gestureState) => {
+        const nextValue = Math.min(Math.max(gestureState.dx, 0), maxTranslate);
+        translateX.setValue(nextValue);
+      },
+      onPanResponderRelease: (_event, gestureState) => {
+        const shouldComplete = gestureState.dx >= maxTranslate * 0.72;
+
+        if (shouldComplete) {
+          Animated.spring(translateX, {
+            toValue: maxTranslate,
+            useNativeDriver: true,
+          }).start(() => {
+            if (!hasCompleted.current) {
+              hasCompleted.current = true;
+              onComplete();
+            }
+          });
+          return;
+        }
+
+        Animated.spring(translateX, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
+      },
+    })
+  ).current;
+
   return (
-    <View style={styles.illustrationShell}>
-      <View style={styles.logoBadge}>
-        <Image source={logoSource} style={styles.logo} resizeMode="contain" />
+    <View style={[styles.sliderTrack, { width }]} {...panResponder.panHandlers}>
+      <Text style={styles.sliderLabel}>Slide to login</Text>
+      <Text style={styles.sliderHint}>&gt;&gt;&gt;</Text>
+      <Animated.View
+        style={[styles.sliderThumb, { transform: [{ translateX }] }]}
+      >
+        <Text style={styles.sliderThumbGlyph}>&gt;</Text>
+      </Animated.View>
+    </View>
+  );
+}
+
+function FeatureCards({ slide }: { slide: OnboardingSlide }) {
+  return (
+    <View style={styles.cardStage}>
+      <View style={[styles.sideCard, styles.leftCard]}>
+        <Text style={styles.smallCardTitle}>{slide.cards[1]}</Text>
+        <View style={styles.mutedShape} />
       </View>
-      <View style={styles.cardStack}>
-        <View style={[styles.previewCard, scene === 'people' ? styles.previewCardOffset : null]}>
-          <View style={styles.previewImage} />
-          <View style={styles.previewLineStrong} />
-          <View style={styles.previewLineSoft} />
+
+      <View style={styles.heroCard}>
+        <View style={styles.heroHeader}>
+          <Image source={logoSource} style={styles.logo} resizeMode="contain" />
+          <Text style={styles.cardTag}>EventBuddy</Text>
         </View>
-        <View style={styles.floatingPill}>
-          <Text style={styles.floatingPillText}>{scene === 'safety' ? 'Verified' : scene === 'people' ? 'Vibe match' : 'Nearby'}</Text>
+        <Text style={styles.heroCardTitle}>{slide.cards[0]}</Text>
+        <View style={styles.heroGraphic}>
+          <View style={styles.heroOrb} />
+          <View style={styles.heroPill} />
         </View>
+      </View>
+
+      <View style={[styles.sideCard, styles.rightCard]}>
+        <Text style={styles.smallCardTitle}>{slide.cards[2]}</Text>
+        <View style={styles.mutedCircle} />
       </View>
     </View>
   );
@@ -169,113 +246,133 @@ const styles = StyleSheet.create({
   },
   slide: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.section,
-    paddingBottom: spacing.xxl,
     backgroundColor: colors.canvas,
+    paddingHorizontal: spacing.base,
+    paddingTop: spacing.section,
+    paddingBottom: spacing.base,
   },
-  illustrationShell: {
-    width: '100%',
-    maxWidth: 340,
-    height: 320,
+  copyBlock: {
+    minHeight: 150,
+    justifyContent: 'flex-start',
+  },
+  titleLine: {
+    fontFamily: fonts.bold,
+    fontSize: 44,
+    lineHeight: 44,
+    color: colors.ink,
+    letterSpacing: -1.3,
+  },
+  ghostWord: {
+    fontFamily: fonts.bold,
+    fontSize: 44,
+    lineHeight: 44,
+    color: colors.hairline,
+    letterSpacing: -1.3,
+  },
+  cardStage: {
+    flex: 1,
+    minHeight: 330,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.xl,
+    marginTop: spacing.lg,
+    marginBottom: spacing.base,
   },
-  logoBadge: {
-    position: 'absolute',
-    top: spacing.md,
+  heroCard: {
     zIndex: 2,
-    width: 92,
-    height: 92,
+    width: 226,
+    height: 258,
+    borderRadius: radius.lg,
+    backgroundColor: colors.canvas,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    padding: spacing.base,
+    transform: [{ rotate: '-3deg' }],
+    ...shadow.cardHover,
+  },
+  heroHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  logo: {
+    width: 34,
+    height: 34,
+  },
+  cardTag: {
+    ...typography.badge,
+    color: colors.muted,
+  },
+  heroCardTitle: {
+    ...typography.displaySm,
+    color: colors.ink,
+    marginBottom: spacing.lg,
+  },
+  heroGraphic: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceSoft,
+  },
+  heroOrb: {
+    width: 72,
+    height: 72,
     borderRadius: radius.full,
+    backgroundColor: colors.surfaceStrong,
+  },
+  heroPill: {
+    width: 112,
+    height: 22,
+    borderRadius: radius.full,
+    backgroundColor: colors.ink,
+    marginTop: spacing.lg,
+  },
+  sideCard: {
+    position: 'absolute',
+    width: 152,
+    height: 188,
+    borderRadius: radius.md,
     backgroundColor: colors.surfaceSoft,
     borderWidth: 1,
     borderColor: colors.hairlineSoft,
+    padding: spacing.md,
   },
-  logo: {
-    width: 70,
-    height: 70,
+  leftCard: {
+    left: -spacing.base,
+    bottom: spacing.xl,
+    transform: [{ rotate: '4deg' }],
   },
-  cardStack: {
-    width: 250,
-    height: 240,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
+  rightCard: {
+    right: -spacing.base,
+    top: spacing.xl,
+    transform: [{ rotate: '-4deg' }],
   },
-  previewCard: {
-    width: 220,
-    height: 230,
+  smallCardTitle: {
+    ...typography.titleMd,
+    color: colors.ink,
+  },
+  mutedShape: {
+    width: 94,
+    height: 82,
     borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    backgroundColor: colors.canvas,
-    padding: spacing.base,
-    ...shadow.card,
+    backgroundColor: colors.hairline,
+    marginTop: spacing.xl,
+    transform: [{ rotate: '-12deg' }],
   },
-  previewCardOffset: {
-    transform: [{ rotate: '-2deg' }],
-  },
-  previewImage: {
-    width: '100%',
-    height: 132,
-    borderRadius: radius.md,
-    backgroundColor: colors.surfaceStrong,
-    marginBottom: spacing.base,
-  },
-  previewLineStrong: {
-    width: '74%',
-    height: 12,
-    borderRadius: radius.full,
-    backgroundColor: colors.ink,
-    marginBottom: spacing.sm,
-  },
-  previewLineSoft: {
-    width: '52%',
-    height: 10,
+  mutedCircle: {
+    width: 78,
+    height: 78,
     borderRadius: radius.full,
     backgroundColor: colors.hairline,
-  },
-  floatingPill: {
-    position: 'absolute',
-    right: 0,
-    bottom: spacing.lg,
-    borderRadius: radius.full,
-    backgroundColor: colors.canvas,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    ...shadow.cardHover,
-  },
-  floatingPillText: {
-    ...typography.badge,
-    color: colors.ink,
-  },
-  eyebrow: {
-    fontSize: 8,
-    fontFamily: fonts.bold,
-    lineHeight: 10,
-    letterSpacing: 0.32,
-    textTransform: 'uppercase',
-    color: colors.muted,
-    marginBottom: spacing.sm,
-  },
-  headline: {
-    ...typography.displayXl,
-    color: colors.ink,
-    textAlign: 'center',
-    marginBottom: spacing.sm,
+    marginTop: spacing.xl,
+    alignSelf: 'center',
   },
   body: {
     ...typography.bodyMd,
     color: colors.body,
+    paddingHorizontal: spacing.sm,
     textAlign: 'center',
-    maxWidth: 320,
   },
   footer: {
     paddingHorizontal: spacing.base,
@@ -284,28 +381,28 @@ const styles = StyleSheet.create({
   },
   dots: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing.sm,
     marginBottom: spacing.base,
   },
   dot: {
-    height: 8,
+    height: 6,
     borderRadius: radius.full,
   },
   dotActive: {
-    width: 24,
+    width: 30,
     backgroundColor: colors.ink,
   },
   dotInactive: {
-    width: 8,
+    width: 6,
     backgroundColor: colors.hairline,
   },
   primaryButton: {
     height: 48,
+    borderRadius: radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radius.sm,
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.lg,
   },
@@ -313,7 +410,40 @@ const styles = StyleSheet.create({
     ...typography.buttonMd,
     color: colors.onPrimary,
   },
-  buttonSpacer: {
-    height: 48,
+  sliderTrack: {
+    height: 64,
+    borderRadius: radius.full,
+    backgroundColor: colors.ink,
+    flexDirection: 'row',
+    alignItems: 'center',
+    overflow: 'hidden',
+    paddingHorizontal: spacing.xs,
+  },
+  sliderLabel: {
+    ...typography.buttonMd,
+    color: colors.canvas,
+    flex: 1,
+    paddingLeft: 76,
+  },
+  sliderHint: {
+    ...typography.buttonMd,
+    color: colors.muted,
+    letterSpacing: 1.2,
+    paddingRight: spacing.lg,
+  },
+  sliderThumb: {
+    position: 'absolute',
+    left: spacing.xs,
+    width: 56,
+    height: 56,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.canvas,
+  },
+  sliderThumbGlyph: {
+    ...typography.buttonSm,
+    color: colors.ink,
+    marginLeft: 2,
   },
 });

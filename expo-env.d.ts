@@ -1,3 +1,3 @@
 /// <reference types="expo/types" />
 
-// This file is generated-style Expo typing glue. Keep it committed for fresh clones.
+// NOTE: This file should not be edited and should be in your git ignore
