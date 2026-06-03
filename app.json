@@ -25,6 +25,13 @@
       "expo-secure-store",
       "expo-notifications",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "EventBuddy needs photo access so you can add a profile picture.",
+          "cameraPermission": "EventBuddy needs camera access so you can take a profile picture."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#F7F3EA"

@@ -1,5 +1,5 @@
-import { PlaceholderScreen } from '@/components/PlaceholderScreen';
+import { Redirect } from 'expo-router';
 
 export default function ProfileSetupRoute() {
-  return <PlaceholderScreen title="Profile Setup" />;
+  return <Redirect href="/(auth)/setup/vibe" />;
 }
