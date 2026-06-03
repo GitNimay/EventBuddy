@@ -2,7 +2,7 @@ import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { z } from 'zod';
@@ -15,6 +15,18 @@ import { typography } from '@/theme/typography';
 
 type EventType = 'official' | 'community';
 type GenderPreference = 'any' | 'women_only' | 'men_only' | 'mixed';
+type PhotonFeature = {
+  geometry?: { coordinates?: [number, number] };
+  properties?: {
+    name?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    state?: string;
+    country?: string;
+    street?: string;
+  };
+};
 
 const categories = ['music', 'trek', 'hackathon', 'meetup', 'art', 'comedy', 'sports', 'food', 'gaming'] as const;
 const categoryLabels: Record<(typeof categories)[number], string> = {
@@ -85,6 +97,9 @@ export default function CreateEventRoute() {
   const [venueName, setVenueName] = useState('');
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
+  const [addressQuery, setAddressQuery] = useState('');
+  const [addressResults, setAddressResults] = useState<PhotonFeature[]>([]);
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const [coverAsset, setCoverAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [isFree, setIsFree] = useState(true);
   const [price, setPrice] = useState('0');
@@ -101,6 +116,52 @@ export default function CreateEventRoute() {
 
     return Number.isFinite(total) && Number.isFinite(current) ? Math.max(total - current, 0) : 0;
   }, [currentGroupSize, maxAttendees]);
+
+  useEffect(() => {
+    const query = addressQuery.trim();
+
+    if (query.length < 3) {
+      setAddressResults([]);
+      return;
+    }
+
+    let isActive = true;
+    const timeout = setTimeout(async () => {
+      setIsSearchingAddress(true);
+
+      try {
+        const response = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`);
+        const payload = await response.json();
+
+        if (isActive) {
+          setAddressResults(Array.isArray(payload.features) ? payload.features : []);
+        }
+      } catch (_error) {
+        if (isActive) setAddressResults([]);
+      } finally {
+        if (isActive) setIsSearchingAddress(false);
+      }
+    }, 350);
+
+    return () => {
+      isActive = false;
+      clearTimeout(timeout);
+    };
+  }, [addressQuery]);
+
+  function selectAddress(feature: PhotonFeature) {
+    const properties = feature.properties ?? {};
+    const coordinates = feature.geometry?.coordinates;
+    const nextCity = properties.city ?? properties.town ?? properties.village ?? properties.state ?? '';
+    const nextVenue = properties.name ?? properties.street ?? nextCity;
+
+    setAddressQuery(formatPhotonAddress(feature));
+    setCity(nextCity);
+    setVenueName(nextVenue);
+    setLongitude(coordinates?.[0] !== undefined ? String(coordinates[0]) : '');
+    setLatitude(coordinates?.[1] !== undefined ? String(coordinates[1]) : '');
+    setAddressResults([]);
+  }
 
   function continueFromType() {
     if (!eventType) return;
@@ -257,12 +318,35 @@ export default function CreateEventRoute() {
                 }}
               />
             ) : null}
-            <Field label="City" value={city} onChangeText={setCity} />
-            <Field label="Venue Name" value={venueName} onChangeText={setVenueName} placeholder="Optional" />
-            <Text style={styles.fieldLabel}>Location Pin (optional)</Text>
-            <View style={styles.inlineFields}>
-              <Field label="Latitude" value={latitude} onChangeText={setLatitude} keyboardType="numeric" compact />
-              <Field label="Longitude" value={longitude} onChangeText={setLongitude} keyboardType="numeric" compact />
+            <View style={styles.fieldWrap}>
+              <Text style={styles.fieldLabel}>Address</Text>
+              <TextInput
+                value={addressQuery}
+                onChangeText={(value) => {
+                  setAddressQuery(value);
+                  setCity('');
+                  setVenueName('');
+                  setLatitude('');
+                  setLongitude('');
+                }}
+                placeholder="Search venue, area, or city"
+                placeholderTextColor={colors.mutedSoft}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={styles.input}
+              />
+              {isSearchingAddress ? <Text style={styles.helperText}>Searching addresses...</Text> : null}
+              {addressResults.length > 0 ? (
+                <View style={styles.addressResults}>
+                  {addressResults.map((feature, index) => (
+                    <Pressable key={`${formatPhotonAddress(feature)}-${index}`} onPress={() => selectAddress(feature)} style={styles.addressOption}>
+                      <Text style={styles.addressTitle} numberOfLines={1}>{feature.properties?.name ?? feature.properties?.street ?? 'Unnamed place'}</Text>
+                      <Text style={styles.addressSubtitle} numberOfLines={1}>{formatPhotonAddress(feature)}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
+              {addressQuery && !city ? <Text style={styles.helperText}>Select an address result to set the event location.</Text> : null}
             </View>
             <Pressable onPress={pickCoverPhoto} style={styles.coverPicker}>
               {coverAsset ? <Image source={{ uri: coverAsset.uri }} style={styles.coverImage} /> : <Text style={styles.coverText}>Choose Cover Photo</Text>}
@@ -358,6 +442,17 @@ function formatTimeDisplay(value: string) {
   return new Date(value).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
 }
 
+function formatPhotonAddress(feature: PhotonFeature) {
+  const properties = feature.properties ?? {};
+
+  return [
+    properties.name ?? properties.street,
+    properties.city ?? properties.town ?? properties.village,
+    properties.state,
+    properties.country,
+  ].filter(Boolean).join(', ');
+}
+
 async function validateImageAsset(asset: ImagePicker.ImagePickerAsset) {
   const mimeType = asset.mimeType?.toLowerCase();
   const extension = getFileExtension(asset.uri);
@@ -435,6 +530,10 @@ const styles = StyleSheet.create({
   coverText: { ...typography.buttonSm, color: colors.ink },
   costToggle: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.base },
   helperText: { ...typography.captionSm, color: colors.muted, marginBottom: spacing.base },
+  addressResults: { borderWidth: 1, borderColor: colors.hairline, borderRadius: radius.sm, overflow: 'hidden', marginTop: spacing.sm, backgroundColor: colors.canvas },
+  addressOption: { minHeight: 56, paddingHorizontal: spacing.base, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.hairlineSoft, justifyContent: 'center' },
+  addressTitle: { ...typography.caption, color: colors.ink },
+  addressSubtitle: { ...typography.captionSm, color: colors.muted, marginTop: spacing.xs },
   errorText: { ...typography.bodySm, color: colors.error, marginTop: spacing.sm },
   footer: { flexDirection: 'row', gap: spacing.sm, padding: spacing.base, paddingBottom: spacing.lg, backgroundColor: colors.canvas, borderTopWidth: 1, borderTopColor: colors.hairlineSoft },
   primaryButton: { flex: 1, height: 48, borderRadius: radius.sm, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg },

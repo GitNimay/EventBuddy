@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   Image,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -13,35 +13,24 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { formatCategory, formatEventDate, formatPrice } from '@/components/EventCard';
-import { type EventCategoryFilter, type EventRecord, type MyEventsFilter, useEventAttendeeCount, useMyCreatedEvents } from '@/hooks/useEvents';
+import { formatCategory, formatEventDate } from '@/components/EventCard';
+import { type EventRecord, type MyEventsFilter, useEventAttendeeCount, useMyCreatedEvents } from '@/hooks/useEvents';
 import { colors } from '@/theme/colors';
 import { radius } from '@/theme/radius';
 import { spacing } from '@/theme/spacing';
 import { typography } from '@/theme/typography';
 
-const tags: { label: string; value: EventCategoryFilter }[] = [
-  { label: 'All', value: 'all' },
-  { label: 'Music', value: 'music' },
-  { label: 'Trek', value: 'trek' },
-  { label: 'Hackathon', value: 'hackathon' },
-  { label: 'Art', value: 'art' },
-];
-
 const statusTags: { label: string; value: MyEventsFilter }[] = [
-  { label: 'Live', value: 'upcoming' },
+  { label: 'Upcoming', value: 'upcoming' },
+  { label: 'Past', value: 'past' },
   { label: 'Pending', value: 'pending' },
 ];
 
 export default function CreateRoute() {
   const params = useLocalSearchParams<{ status?: string }>();
-  const [selectedTag, setSelectedTag] = useState<EventCategoryFilter>('all');
   const [selectedStatus, setSelectedStatus] = useState<MyEventsFilter>(params.status === 'pending' ? 'pending' : 'upcoming');
   const myEventsQuery = useMyCreatedEvents(selectedStatus);
-
-  const liveEvents = useMemo(() => {
-    return (myEventsQuery.data ?? []).filter((event) => selectedTag === 'all' || event.category === selectedTag);
-  }, [myEventsQuery.data, selectedTag]);
+  const myEvents = myEventsQuery.data ?? [];
 
   function openCreateEvent() {
     router.push('/event/create');
@@ -50,11 +39,9 @@ export default function CreateRoute() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <FlatList
-        data={liveEvents}
+        data={myEvents}
         keyExtractor={(event) => event.id}
         renderItem={({ item }) => <MyEventTile event={item} />}
-        numColumns={2}
-        columnWrapperStyle={styles.gridRow}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
         refreshControl={
@@ -65,7 +52,7 @@ export default function CreateRoute() {
             <View style={styles.headerRow}>
               <Text style={styles.title}>My Events</Text>
               <Pressable onPress={openCreateEvent} style={({ pressed }) => [styles.postButton, pressed && styles.pressed]}>
-                <Text style={styles.postButtonText}>Post Event</Text>
+                <Text style={styles.postButtonText}>Post New Event</Text>
               </Pressable>
             </View>
 
@@ -85,25 +72,9 @@ export default function CreateRoute() {
               })}
             </View>
 
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tagRow}>
-              {tags.map((tag) => {
-                const isActive = tag.value === selectedTag;
-
-                return (
-                  <Pressable
-                    key={tag.value}
-                    onPress={() => setSelectedTag(tag.value)}
-                    style={[styles.tagChip, isActive ? styles.tagChipSelected : null]}
-                  >
-                    <Text style={[styles.tagLabel, isActive ? styles.tagLabelSelected : null]}>{tag.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>{selectedStatus === 'pending' ? 'Pending Events' : 'Live Events'}</Text>
-              <Text style={styles.sectionCount}>{liveEvents.length} posted</Text>
+              <Text style={styles.sectionTitle}>{getSectionTitle(selectedStatus)}</Text>
+              <Text style={styles.sectionCount}>{myEvents.length} posted</Text>
             </View>
           </View>
         }
@@ -115,8 +86,12 @@ export default function CreateRoute() {
             </View>
           ) : (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyTitle}>{selectedStatus === 'pending' ? 'No pending events' : 'No live events yet'}</Text>
-              <Text style={styles.stateBody}>{selectedStatus === 'pending' ? 'Official events under review will appear here.' : 'Posted live events will appear here.'}</Text>
+              <Ionicons name="calendar-outline" color={colors.primary} size={30} />
+              <Text style={styles.emptyTitle}>You haven’t posted any events yet.</Text>
+              <Text style={styles.stateBody}>{selectedStatus === 'pending' ? 'Official events under review will appear here.' : 'Create your first event and it will appear in this hub.'}</Text>
+              <Pressable onPress={openCreateEvent} style={({ pressed }) => [styles.emptyButton, pressed && styles.pressed]}>
+                <Text style={styles.emptyButtonText}>Post Your First Event</Text>
+              </Pressable>
             </View>
           )
         }
@@ -144,14 +119,50 @@ function MyEventTile({ event }: { event: EventRecord }) {
       )}
       <View style={styles.tileMeta}>
         <Text style={styles.tileTitle} numberOfLines={1}>{event.title}</Text>
-        <Text style={styles.tileSubtext} numberOfLines={1}>{formatEventDate(event.date)}</Text>
+        <Text style={styles.tileSubtext} numberOfLines={1}>{formatEventDate(event.date)}{event.city ? ` · ${event.city}` : ''}</Text>
+        <View style={styles.badgeRow}>
+          <View style={[styles.statusBadge, getStatusBadgeStyle(event.status)]}>
+            <Text style={[styles.statusBadgeText, getStatusBadgeTextStyle(event.status)]}>{getStatusLabel(event.status)}</Text>
+          </View>
+          <View style={[styles.typeBadge, event.event_type === 'community' ? styles.communityBadge : styles.officialBadge]}>
+            <Text style={styles.typeBadgeText}>{event.event_type === 'community' ? 'Community' : 'Official'}</Text>
+          </View>
+        </View>
         <View style={styles.tileFooter}>
-          <Text style={styles.tileSubtext} numberOfLines={1}>{attendeeCount} going</Text>
-          <Text style={styles.tilePrice}>{formatPrice(event.price)}</Text>
+          <Text style={styles.tileSubtext} numberOfLines={1}>{attendeeCount}/{event.max_attendees ?? '∞'} joined</Text>
+          <Ionicons name="chevron-forward" color={colors.muted} size={18} />
         </View>
       </View>
     </Pressable>
   );
+}
+
+function getSectionTitle(filter: MyEventsFilter) {
+  if (filter === 'past') return 'Past Events';
+  if (filter === 'pending') return 'Pending Approval';
+
+  return 'Upcoming Events';
+}
+
+function getStatusLabel(status: EventRecord['status']) {
+  if (status === 'pending') return 'Pending Approval';
+  if (status === 'past') return 'Past';
+  if (status === 'cancelled') return 'Cancelled';
+
+  return 'Live';
+}
+
+function getStatusBadgeStyle(status: EventRecord['status']) {
+  if (status === 'pending') return styles.pendingBadge;
+  if (status === 'past' || status === 'cancelled') return styles.pastBadge;
+
+  return styles.liveBadge;
+}
+
+function getStatusBadgeTextStyle(status: EventRecord['status']) {
+  if (status === 'pending' || status === 'past' || status === 'cancelled') return styles.darkBadgeText;
+
+  return null;
 }
 
 const styles = StyleSheet.create({
@@ -162,9 +173,6 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing.base,
     paddingBottom: spacing.xxl,
-  },
-  gridRow: {
-    justifyContent: 'space-between',
   },
   headerRow: {
     flexDirection: 'row',
@@ -197,7 +205,7 @@ const styles = StyleSheet.create({
   statusRow: {
     flexDirection: 'row',
     gap: spacing.sm,
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   statusChip: {
     minHeight: 40,
@@ -220,28 +228,6 @@ const styles = StyleSheet.create({
   statusLabelSelected: {
     color: colors.canvas,
   },
-  tagRow: {
-    gap: spacing.lg,
-    paddingRight: spacing.base,
-    marginBottom: spacing.lg,
-  },
-  tagChip: {
-    minHeight: 36,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.canvas,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tagChipSelected: {
-    borderBottomColor: colors.ink,
-  },
-  tagLabel: {
-    ...typography.buttonSm,
-    color: colors.muted,
-  },
-  tagLabelSelected: {
-    color: colors.ink,
-  },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -257,22 +243,25 @@ const styles = StyleSheet.create({
     color: colors.muted,
   },
   tile: {
-    width: '48%',
+    flexDirection: 'row',
+    gap: spacing.md,
     marginBottom: spacing.base,
     borderRadius: radius.md,
-    overflow: 'hidden',
     backgroundColor: colors.canvas,
     borderWidth: 1,
     borderColor: colors.hairlineSoft,
+    padding: spacing.sm,
   },
   tileImage: {
-    width: '100%',
-    aspectRatio: 1.12,
+    width: 96,
+    height: 96,
+    borderRadius: radius.sm,
     backgroundColor: colors.surfaceSoft,
   },
   tileImagePlaceholder: {
-    width: '100%',
-    aspectRatio: 1.12,
+    width: 96,
+    height: 96,
+    borderRadius: radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surfaceSoft,
@@ -283,7 +272,8 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   tileMeta: {
-    padding: spacing.sm,
+    flex: 1,
+    justifyContent: 'space-between',
   },
   tileTitle: {
     ...typography.caption,
@@ -301,9 +291,49 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginTop: spacing.sm,
   },
-  tilePrice: {
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  statusBadge: {
+    borderRadius: radius.full,
+    paddingVertical: 5,
+    paddingHorizontal: spacing.sm,
+  },
+  liveBadge: {
+    backgroundColor: colors.primary,
+  },
+  pendingBadge: {
+    backgroundColor: colors.surfaceSoft,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+  },
+  pastBadge: {
+    backgroundColor: colors.surfaceStrong,
+  },
+  statusBadgeText: {
     ...typography.badge,
+    color: colors.onPrimary,
+  },
+  darkBadgeText: {
     color: colors.ink,
+  },
+  typeBadge: {
+    borderRadius: radius.full,
+    paddingVertical: 5,
+    paddingHorizontal: spacing.sm,
+  },
+  officialBadge: {
+    backgroundColor: colors.ink,
+  },
+  communityBadge: {
+    backgroundColor: colors.primary,
+  },
+  typeBadgeText: {
+    ...typography.badge,
+    color: colors.canvas,
   },
   centerState: {
     alignItems: 'center',
@@ -312,6 +342,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xxl,
   },
   emptyCard: {
+    alignItems: 'center',
+    gap: spacing.sm,
     paddingVertical: spacing.xl,
     paddingHorizontal: spacing.base,
     borderRadius: radius.md,
@@ -327,5 +359,19 @@ const styles = StyleSheet.create({
   stateBody: {
     ...typography.bodySm,
     color: colors.muted,
+    textAlign: 'center',
+  },
+  emptyButton: {
+    height: 48,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.primary,
+    marginTop: spacing.sm,
+  },
+  emptyButtonText: {
+    ...typography.buttonMd,
+    color: colors.onPrimary,
   },
 });
