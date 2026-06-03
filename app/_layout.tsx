@@ -69,7 +69,7 @@ function RootNavigator() {
       router.replace('/(auth)/login');
     }
 
-    if (onboardingSeen && session && (isInAuthGroup || isInSplash)) {
+    if (onboardingSeen && session && isInSplash) {
       router.replace('/(tabs)');
     }
 

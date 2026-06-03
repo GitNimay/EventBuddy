@@ -12,11 +12,13 @@
     },
     "android": {
       "package": "com.eventbuddy.app",
+      "softwareKeyboardLayoutMode": "resize",
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "bundler": "metro",
-      "output": "static"
+      "output": "static",
+      "favicon": "./N-removebg-preview.png"
     },
     "plugins": [
       "expo-router",
