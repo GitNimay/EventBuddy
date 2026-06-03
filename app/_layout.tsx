@@ -94,6 +94,7 @@ function RootNavigator() {
       <Stack.Screen name="event/[id]" options={{ title: 'Event Details' }} />
       <Stack.Screen name="buddy/[id]" options={{ title: 'Buddy Profile' }} />
       <Stack.Screen name="chat/[groupId]" options={{ title: 'Buddy Chat' }} />
+      <Stack.Screen name="filter" options={{ presentation: 'modal', title: 'Filters' }} />
       <Stack.Screen name="settings" options={{ title: 'Settings' }} />
     </Stack>
   );
