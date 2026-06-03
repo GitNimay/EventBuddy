@@ -33,7 +33,7 @@ const interestLabels: Record<(typeof interestOptions)[number], string> = {
 };
 
 export default function InterestsSetupRoute() {
-  const params = useLocalSearchParams<{ vibeType?: string }>();
+  const params = useLocalSearchParams<{ vibeType?: string; gender?: string }>();
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const isValid = selectedInterests.length >= 3 && selectedInterests.length <= 5;
   const helperText = useMemo(() => {
@@ -59,10 +59,11 @@ export default function InterestsSetupRoute() {
 
     router.push({
       pathname: '/(auth)/setup/photo',
-      params: {
-        vibeType: params.vibeType,
-        interests: selectedInterests.join(','),
-      },
+        params: {
+          vibeType: params.vibeType,
+          gender: params.gender ?? '',
+          interests: selectedInterests.join(','),
+        },
     });
   }
 

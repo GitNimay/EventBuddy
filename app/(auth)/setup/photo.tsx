@@ -23,7 +23,7 @@ type CloudinaryUploadResponse = {
 };
 
 export default function PhotoSetupRoute() {
-  const params = useLocalSearchParams<{ vibeType?: string; interests?: string }>();
+  const params = useLocalSearchParams<{ vibeType?: string; gender?: string; interests?: string }>();
   const [selectedAsset, setSelectedAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -108,10 +108,15 @@ export default function PhotoSetupRoute() {
       vibe_type: string;
       interests: string[];
       avatar_url?: string;
+      gender?: string;
     } = {
       vibe_type: params.vibeType,
       interests,
     };
+
+    if (params.gender) {
+      updatePayload.gender = params.gender;
+    }
 
     if (avatarUrl) {
       updatePayload.avatar_url = avatarUrl;

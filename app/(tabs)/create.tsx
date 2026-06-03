@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   Pressable,
@@ -11,11 +10,11 @@ import {
   Text,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { formatCategory, formatEventDate, formatPrice } from '@/components/EventCard';
-import { type EventCategoryFilter, type EventRecord, useEventAttendeeCount, useMyCreatedEvents } from '@/hooks/useEvents';
+import { type EventCategoryFilter, type EventRecord, type MyEventsFilter, useEventAttendeeCount, useMyCreatedEvents } from '@/hooks/useEvents';
 import { colors } from '@/theme/colors';
 import { radius } from '@/theme/radius';
 import { spacing } from '@/theme/spacing';
@@ -29,16 +28,23 @@ const tags: { label: string; value: EventCategoryFilter }[] = [
   { label: 'Art', value: 'art' },
 ];
 
+const statusTags: { label: string; value: MyEventsFilter }[] = [
+  { label: 'Live', value: 'upcoming' },
+  { label: 'Pending', value: 'pending' },
+];
+
 export default function CreateRoute() {
+  const params = useLocalSearchParams<{ status?: string }>();
   const [selectedTag, setSelectedTag] = useState<EventCategoryFilter>('all');
-  const myEventsQuery = useMyCreatedEvents('upcoming');
+  const [selectedStatus, setSelectedStatus] = useState<MyEventsFilter>(params.status === 'pending' ? 'pending' : 'upcoming');
+  const myEventsQuery = useMyCreatedEvents(selectedStatus);
 
   const liveEvents = useMemo(() => {
     return (myEventsQuery.data ?? []).filter((event) => selectedTag === 'all' || event.category === selectedTag);
   }, [myEventsQuery.data, selectedTag]);
 
-  function showPhaseSevenNotice() {
-    Alert.alert('Coming in Phase 7', 'The Create Event form will be built in the next phase.');
+  function openCreateEvent() {
+    router.push('/event/create');
   }
 
   return (
@@ -58,9 +64,25 @@ export default function CreateRoute() {
           <View>
             <View style={styles.headerRow}>
               <Text style={styles.title}>My Events</Text>
-              <Pressable onPress={showPhaseSevenNotice} style={({ pressed }) => [styles.postButton, pressed && styles.pressed]}>
+              <Pressable onPress={openCreateEvent} style={({ pressed }) => [styles.postButton, pressed && styles.pressed]}>
                 <Text style={styles.postButtonText}>Post Event</Text>
               </Pressable>
+            </View>
+
+            <View style={styles.statusRow}>
+              {statusTags.map((tag) => {
+                const isActive = tag.value === selectedStatus;
+
+                return (
+                  <Pressable
+                    key={tag.value}
+                    onPress={() => setSelectedStatus(tag.value)}
+                    style={[styles.statusChip, isActive ? styles.statusChipSelected : null]}
+                  >
+                    <Text style={[styles.statusLabel, isActive ? styles.statusLabelSelected : null]}>{tag.label}</Text>
+                  </Pressable>
+                );
+              })}
             </View>
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tagRow}>
@@ -80,7 +102,7 @@ export default function CreateRoute() {
             </ScrollView>
 
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Live Events</Text>
+              <Text style={styles.sectionTitle}>{selectedStatus === 'pending' ? 'Pending Events' : 'Live Events'}</Text>
               <Text style={styles.sectionCount}>{liveEvents.length} posted</Text>
             </View>
           </View>
@@ -93,8 +115,8 @@ export default function CreateRoute() {
             </View>
           ) : (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyTitle}>No live events yet</Text>
-              <Text style={styles.stateBody}>Posted live events will appear here.</Text>
+              <Text style={styles.emptyTitle}>{selectedStatus === 'pending' ? 'No pending events' : 'No live events yet'}</Text>
+              <Text style={styles.stateBody}>{selectedStatus === 'pending' ? 'Official events under review will appear here.' : 'Posted live events will appear here.'}</Text>
             </View>
           )
         }
@@ -171,6 +193,32 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.86,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  statusChip: {
+    minHeight: 40,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.canvas,
+  },
+  statusChipSelected: {
+    backgroundColor: colors.ink,
+    borderColor: colors.ink,
+  },
+  statusLabel: {
+    ...typography.buttonSm,
+    color: colors.ink,
+  },
+  statusLabelSelected: {
+    color: colors.canvas,
   },
   tagRow: {
     gap: spacing.lg,

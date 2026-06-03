@@ -91,6 +91,7 @@ function RootNavigator() {
       <Stack.Screen name="splash" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="event/create" options={{ title: 'Create Event' }} />
       <Stack.Screen name="event/[id]" options={{ title: 'Event Details' }} />
       <Stack.Screen name="buddy/[id]" options={{ title: 'Buddy Profile' }} />
       <Stack.Screen name="chat/[groupId]" options={{ title: 'Buddy Chat' }} />

@@ -10,6 +10,7 @@ import { spacing } from '@/theme/spacing';
 import { typography } from '@/theme/typography';
 
 type VibeType = 'introvert' | 'extrovert' | 'solo_explorer' | 'social_butterfly';
+type Gender = 'male' | 'female' | 'non_binary' | 'prefer_not_to_say';
 
 const vibeOptions: { value: VibeType; label: string; description: string }[] = [
   {
@@ -34,13 +35,21 @@ const vibeOptions: { value: VibeType; label: string; description: string }[] = [
   },
 ];
 
+const genderOptions: { value: Gender; label: string }[] = [
+  { value: 'male', label: 'Male' },
+  { value: 'female', label: 'Female' },
+  { value: 'non_binary', label: 'Non-binary' },
+  { value: 'prefer_not_to_say', label: 'Prefer not to say' },
+];
+
 export default function VibeSetupRoute() {
   const [selectedVibe, setSelectedVibe] = useState<VibeType | null>(null);
+  const [selectedGender, setSelectedGender] = useState<Gender | null>(null);
 
   function handleContinue() {
     if (!selectedVibe) return;
 
-    router.push({ pathname: '/(auth)/setup/interests', params: { vibeType: selectedVibe } });
+    router.push({ pathname: '/(auth)/setup/interests', params: { vibeType: selectedVibe, gender: selectedGender ?? '' } });
   }
 
   return (
@@ -72,6 +81,20 @@ export default function VibeSetupRoute() {
             </Pressable>
           );
         })}
+      </View>
+      <View style={styles.genderBlock}>
+        <Text style={styles.sectionTitle}>Gender (optional)</Text>
+        <View style={styles.genderGrid}>
+          {genderOptions.map((option) => {
+            const isSelected = selectedGender === option.value;
+
+            return (
+              <Pressable key={option.value} onPress={() => setSelectedGender(option.value)} style={[styles.genderChip, isSelected ? styles.genderChipSelected : null]}>
+                <Text style={[styles.genderChipLabel, isSelected ? styles.genderChipLabelSelected : null]}>{option.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
     </ProfileSetupScaffold>
   );
@@ -129,6 +152,40 @@ function VibeIllustration({ vibe }: { vibe: VibeType }) {
 const styles = StyleSheet.create({
   grid: {
     gap: spacing.base,
+  },
+  genderBlock: {
+    marginTop: spacing.lg,
+  },
+  sectionTitle: {
+    ...typography.titleSm,
+    color: colors.ink,
+    marginBottom: spacing.sm,
+  },
+  genderGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  genderChip: {
+    minHeight: 40,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    paddingHorizontal: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.canvas,
+  },
+  genderChipSelected: {
+    borderColor: colors.ink,
+    backgroundColor: colors.ink,
+  },
+  genderChipLabel: {
+    ...typography.buttonSm,
+    color: colors.ink,
+  },
+  genderChipLabelSelected: {
+    color: colors.canvas,
   },
   tile: {
     flexDirection: 'row',

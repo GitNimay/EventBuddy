@@ -23,7 +23,7 @@ const categoryOptions: { label: string; value: EventCategoryFilter }[] = [
   { label: 'Food', value: 'food' },
   { label: 'Comedy', value: 'comedy' },
   { label: 'Sports', value: 'sports' },
-  { label: 'Tech', value: 'tech' },
+  { label: 'Meetup', value: 'meetup' },
   { label: 'Gaming', value: 'gaming' },
 ];
 

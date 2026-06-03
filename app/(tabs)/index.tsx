@@ -19,6 +19,7 @@ import {
   type BudgetFilter,
   type DateRangeFilter,
   type EventCategoryFilter,
+  type EventTypeFilter,
   type GroupSizeFilter,
   useEvents,
 } from '@/hooks/useEvents';
@@ -33,7 +34,14 @@ const categories: { label: string; value: EventCategoryFilter }[] = [
   { label: 'Music', value: 'music' },
   { label: 'Trek', value: 'trek' },
   { label: 'Hackathon', value: 'hackathon' },
+  { label: 'Meetup', value: 'meetup' },
   { label: 'Art', value: 'art' },
+];
+
+const eventTypes: { label: string; value: EventTypeFilter }[] = [
+  { label: 'All', value: 'all' },
+  { label: 'Official', value: 'official' },
+  { label: 'Community', value: 'community' },
 ];
 
 export default function HomeRoute() {
@@ -46,12 +54,14 @@ export default function HomeRoute() {
   const queryClient = useQueryClient();
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<EventCategoryFilter>(normalizeCategory(params.category));
+  const [selectedEventType, setSelectedEventType] = useState<EventTypeFilter>('all');
   const deferredSearchText = useDeferredValue(searchText);
   const { data: currentUser } = useCurrentUser();
   const eventsQuery = useEvents({
     budget: normalizeBudget(params.budget),
     groupSize: normalizeGroupSize(params.groupSize),
     dateRange: normalizeDateRange(params.dateRange),
+    eventType: selectedEventType,
   });
 
   useEffect(() => {
@@ -124,24 +134,42 @@ export default function HomeRoute() {
               <Pressable onPress={openFilters} style={styles.filterChipButton}>
                 <Text style={styles.filterChipButtonText}>Filter</Text>
               </Pressable>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-                {categories.map((category) => {
-                  const isSelected = selectedCategory === category.value;
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.typeChipRow}>
+                {eventTypes.map((eventType) => {
+                  const isSelected = selectedEventType === eventType.value;
 
                   return (
                     <Pressable
-                      key={category.value}
-                      onPress={() => setSelectedCategory(category.value)}
-                      style={[styles.categoryChip, isSelected ? styles.categoryChipSelected : null]}
+                      key={eventType.value}
+                      onPress={() => setSelectedEventType(eventType.value)}
+                      style={[styles.eventTypeChip, isSelected ? styles.eventTypeChipSelected : null]}
                     >
-                      <Text style={[styles.categoryChipLabel, isSelected ? styles.categoryChipLabelSelected : null]}>
-                        {category.label}
+                      <Text style={[styles.eventTypeChipLabel, isSelected ? styles.eventTypeChipLabelSelected : null]}>
+                        {eventType.label}
                       </Text>
                     </Pressable>
                   );
                 })}
               </ScrollView>
             </View>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+              {categories.map((category) => {
+                const isSelected = selectedCategory === category.value;
+
+                return (
+                  <Pressable
+                    key={category.value}
+                    onPress={() => setSelectedCategory(category.value)}
+                    style={[styles.categoryChip, isSelected ? styles.categoryChipSelected : null]}
+                  >
+                    <Text style={[styles.categoryChipLabel, isSelected ? styles.categoryChipLabelSelected : null]}>
+                      {category.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
           </View>
         }
         ListEmptyComponent={
@@ -242,6 +270,32 @@ const styles = StyleSheet.create({
   chipRow: {
     gap: spacing.sm,
     paddingRight: spacing.base,
+    marginTop: spacing.sm,
+  },
+  typeChipRow: {
+    gap: spacing.sm,
+    paddingRight: spacing.base,
+  },
+  eventTypeChip: {
+    minHeight: 40,
+    borderRadius: radius.xl,
+    backgroundColor: colors.canvas,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    paddingHorizontal: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  eventTypeChipSelected: {
+    backgroundColor: colors.ink,
+    borderColor: colors.ink,
+  },
+  eventTypeChipLabel: {
+    ...typography.buttonSm,
+    color: colors.ink,
+  },
+  eventTypeChipLabelSelected: {
+    color: colors.canvas,
   },
   categoryChip: {
     minHeight: 40,
