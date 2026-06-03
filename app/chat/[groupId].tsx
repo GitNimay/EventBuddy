@@ -1,5 +1,7 @@
-import { PlaceholderScreen } from '@/components/PlaceholderScreen';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 
 export default function ChatRoute() {
-  return <PlaceholderScreen title="Chat" />;
+  const params = useLocalSearchParams<{ groupId?: string }>();
+
+  return <Redirect href={{ pathname: '/group/[id]/chat', params: { id: params.groupId ?? '' } }} />;
 }

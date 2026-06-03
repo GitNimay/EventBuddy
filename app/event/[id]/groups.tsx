@@ -31,7 +31,7 @@ export default function EventGroupsRoute() {
   }
 
   function openChat(groupId: string) {
-    router.push({ pathname: '/chat/[groupId]', params: { groupId } });
+    router.push({ pathname: '/group/[id]/chat', params: { id: groupId } });
   }
 
   function handleJoin(group: OpenBuddyGroup) {
