@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useDeferredValue, useEffect, useMemo, useState } from 'react';
@@ -15,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EventCard } from '@/components/EventCard';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useNotifications } from '@/hooks/useNotifications';
 import {
   type BudgetFilter,
   type DateRangeFilter,
@@ -80,6 +82,8 @@ export default function HomeRoute() {
   }, [deferredSearchText, eventsQuery.data, selectedCategory]);
 
   const firstName = getFirstName(currentUser?.profile?.full_name);
+  const notificationsQuery = useNotifications();
+  const unreadCount = (notificationsQuery.data ?? []).filter((n) => !n.is_read).length;
   const isRefreshing = eventsQuery.isRefetching;
 
   async function handleRefresh() {
@@ -112,7 +116,17 @@ export default function HomeRoute() {
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
         ListHeaderComponent={
           <View style={styles.header}>
-            <Text style={styles.greeting}>Hey {firstName}</Text>
+            <View style={styles.greetingRow}>
+              <Text style={styles.greeting}>Hey {firstName}</Text>
+              <Pressable onPress={() => router.push('/notifications')} style={styles.bellButton}>
+                <Ionicons name="notifications-outline" color={colors.ink} size={24} />
+                {unreadCount > 0 ? (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            </View>
             <Text style={styles.subGreeting}>Find the plan, then find your people.</Text>
 
             <View style={styles.searchRow}>
@@ -225,6 +239,37 @@ const styles = StyleSheet.create({
   greeting: {
     ...typography.displayXl,
     color: colors.ink,
+    flex: 1,
+  },
+  greetingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  bellButton: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceSoft,
+  },
+  badge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    ...typography.badge,
+    color: colors.onPrimary,
+    lineHeight: 18,
   },
   subGreeting: {
     ...typography.bodySm,

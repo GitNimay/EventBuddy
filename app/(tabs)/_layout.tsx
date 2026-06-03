@@ -32,8 +32,8 @@ export default function TabLayout() {
       <Tabs.Screen name="explore" options={{ title: 'Explore', tabBarIcon: renderTabIcon('map-outline', 'map') }} />
       <Tabs.Screen name="create" options={{ title: 'Create', tabBarIcon: renderTabIcon('add-circle-outline', 'add-circle') }} />
       <Tabs.Screen name="buddies" options={{ title: 'Buddies', tabBarIcon: renderTabIcon('people-outline', 'people') }} />
-      <Tabs.Screen name="notifications" options={{ title: 'Alerts', tabBarIcon: renderTabIcon('notifications-outline', 'notifications') }} />
       <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: renderTabIcon('person-outline', 'person') }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
       <Tabs.Screen name="saved" options={{ href: null }} />
     </Tabs>
   );

@@ -98,6 +98,10 @@ function RootNavigator() {
       <Stack.Screen name="user/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="buddy/[id]" options={{ title: 'Buddy Profile' }} />
       <Stack.Screen name="group/[id]/chat" options={{ headerShown: false }} />
+      <Stack.Screen name="group/[id]/location" options={{ headerShown: false }} />
+      <Stack.Screen name="profile/verify" options={{ headerShown: false }} />
+      <Stack.Screen name="rate/[userId]" options={{ title: 'Rate Buddy' }} />
+      <Stack.Screen name="report/[userId]" options={{ title: 'Report User' }} />
       <Stack.Screen name="chat/[groupId]" options={{ title: 'Buddy Chat' }} />
       <Stack.Screen name="filter" options={{ presentation: 'modal', title: 'Filters' }} />
       <Stack.Screen name="settings" options={{ title: 'Settings' }} />
