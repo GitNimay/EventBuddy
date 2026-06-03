@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "EventBuddy",
+    "slug": "eventbuddy",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "eventbuddy",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.eventbuddy.app"
+    },
+    "android": {
+      "package": "com.eventbuddy.app",
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-notifications",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F7F3EA"
+        }
+      ],
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c813f177-407a-4db4-a6cc-6deea8a483f4"
+      }
+    },
+    "owner": "nimstreak"
+  }
+}
