@@ -112,6 +112,11 @@ export default function GroupChatRoute() {
             <Text style={styles.title} numberOfLines={1}>{summaryQuery.data?.name ?? 'Buddy chat'}</Text>
             <Text style={styles.subtitle}>{onlineCount} {onlineCount === 1 ? 'member' : 'members'} online</Text>
           </View>
+          {groupId ? (
+            <Pressable onPress={() => router.push({ pathname: '/group/[id]/location', params: { id: groupId } })} style={styles.iconButton}>
+              <Ionicons name="location-outline" color={colors.primary} size={22} />
+            </Pressable>
+          ) : null}
         </View>
 
         <View style={styles.memberRail}>

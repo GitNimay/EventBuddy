@@ -4,7 +4,7 @@ import { AppState } from 'react-native';
 import { supabase } from '@/lib/supabase';
 
 export function useSession() {
-  const [session, setSession] = useState(null);
+  const [session, setSession] = useState(/** @type {import('@supabase/supabase-js').Session | null} */ (null));
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

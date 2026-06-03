@@ -84,7 +84,7 @@ export default function EventGroupsRoute() {
           </View>
           <Text style={styles.heroTitle}>Join a small group before the event</Text>
           <Text style={styles.heroText}>Group capacity is checked server-side, so full groups stay full even if multiple people tap join together.</Text>
-          <Pressable onPress={() => router.push({ pathname: '/event/[id]/buddies', params: { id: eventId } })} style={styles.outlineButton}>
+          <Pressable onPress={() => eventId && router.push({ pathname: '/event/[id]/buddies', params: { id: eventId } })} style={styles.outlineButton}>
             <Text style={styles.outlineButtonLabel}>Match with buddies first</Text>
           </Pressable>
         </View>

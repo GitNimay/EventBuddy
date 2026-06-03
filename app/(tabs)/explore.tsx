@@ -94,17 +94,22 @@ export default function ExploreRoute() {
       </MapView>
 
       <View style={styles.topOverlay}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search-outline" color={colors.mutedSoft} size={18} />
-          <TextInput
-            value={searchText}
-            onChangeText={setSearchText}
-            placeholder="Search by city"
-            placeholderTextColor={colors.mutedSoft}
-            autoCapitalize="none"
-            autoCorrect={false}
-            style={styles.searchInput}
-          />
+        <View style={styles.topRow}>
+          <View style={styles.searchBar}>
+            <Ionicons name="search-outline" color={colors.mutedSoft} size={18} />
+            <TextInput
+              value={searchText}
+              onChangeText={setSearchText}
+              placeholder="Search by city"
+              placeholderTextColor={colors.mutedSoft}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.searchInput}
+            />
+          </View>
+          <Pressable onPress={() => router.push('/clubs/index')} style={styles.clubsButton}>
+            <Ionicons name="school-outline" color={colors.primary} size={20} />
+          </Pressable>
         </View>
         {permissionMessage ? <Text style={styles.permissionText}>{permissionMessage}</Text> : null}
       </View>
@@ -149,7 +154,12 @@ const styles = StyleSheet.create({
     right: spacing.base,
     gap: spacing.sm,
   },
+  topRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
   searchBar: {
+    flex: 1,
     height: 56,
     borderRadius: radius.full,
     borderWidth: 1,
@@ -159,6 +169,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     paddingHorizontal: spacing.base,
+    ...shadow.card,
+  },
+  clubsButton: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.full,
+    backgroundColor: colors.canvas,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    alignItems: 'center',
+    justifyContent: 'center',
     ...shadow.card,
   },
   searchInput: {

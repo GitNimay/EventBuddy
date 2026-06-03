@@ -12,9 +12,11 @@ import { useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { queryClient } from '@/lib/queryClient';
+import { supabase } from '@/lib/supabase';
 import { colors } from '@/theme/colors';
 import { useSession } from '@/hooks/useSession';
 import { getOnboardingSeen } from '@/lib/onboardingStorage';
+import { useAppUpdate } from '@/hooks/useAppUpdate';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -24,7 +26,45 @@ export const unstable_settings = {
 
 SplashScreen.preventAutoHideAsync();
 
+async function registerForPushNotifications() {
+  try {
+    const Constants = require('expo-constants');
+    if (Constants.default?.executionEnvironment === 'storeClient') return null;
+
+    const Device = require('expo-device');
+    if (!Device.isDevice) return null;
+
+    const Notifications = require('expo-notifications');
+
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+      }),
+    });
+
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== 'granted') return null;
+
+    const token = await Notifications.getExpoPushTokenAsync();
+    return token.data;
+  } catch {
+    return null;
+  }
+}
+
 function RootNavigator() {
+  useAppUpdate();
   const segments = useSegments();
   const { session, isLoading } = useSession();
   const [onboardingSeen, setOnboardingSeenState] = useState<boolean | null>(null);
@@ -76,6 +116,26 @@ function RootNavigator() {
     SplashScreen.hideAsync();
   }, [fontsLoaded, isLoading, onboardingSeen, segments, session]);
 
+  useEffect(() => {
+    if (!session) return;
+
+    let cancelled = false;
+    (async () => {
+      const pushToken = await registerForPushNotifications();
+      if (cancelled || !pushToken) return;
+      const user = session.user;
+      if (!user) return;
+      await supabase
+        .from('users')
+        .update({ push_token: pushToken })
+        .eq('id', user.id);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
+
   if (!fontsLoaded || isLoading || onboardingSeen === null) {
     return null;
   }
@@ -95,16 +155,22 @@ function RootNavigator() {
       <Stack.Screen name="event/[id]" options={{ title: 'Event Details' }} />
       <Stack.Screen name="event/[id]/groups" options={{ headerShown: false }} />
       <Stack.Screen name="event/[id]/buddies" options={{ headerShown: false }} />
+      <Stack.Screen name="event/[id]/split" options={{ headerShown: false }} />
       <Stack.Screen name="user/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="buddy/[id]" options={{ title: 'Buddy Profile' }} />
       <Stack.Screen name="group/[id]/chat" options={{ headerShown: false }} />
       <Stack.Screen name="group/[id]/location" options={{ headerShown: false }} />
+      <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
+      <Stack.Screen name="profile/settings" options={{ headerShown: false }} />
+      <Stack.Screen name="profile/badges" options={{ headerShown: false }} />
       <Stack.Screen name="profile/verify" options={{ headerShown: false }} />
+      <Stack.Screen name="recap/[eventId]" options={{ headerShown: false }} />
       <Stack.Screen name="rate/[userId]" options={{ title: 'Rate Buddy' }} />
       <Stack.Screen name="report/[userId]" options={{ title: 'Report User' }} />
+      <Stack.Screen name="clubs/index" options={{ headerShown: false }} />
+      <Stack.Screen name="clubs/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="chat/[groupId]" options={{ title: 'Buddy Chat' }} />
       <Stack.Screen name="filter" options={{ presentation: 'modal', title: 'Filters' }} />
-      <Stack.Screen name="settings" options={{ title: 'Settings' }} />
     </Stack>
   );
 }

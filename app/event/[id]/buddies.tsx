@@ -94,7 +94,7 @@ export default function EventBuddiesRoute() {
           </ScrollView>
         ) : null}
 
-        <Pressable onPress={() => router.push({ pathname: '/event/[id]/groups', params: { id: eventId } })} style={styles.primaryButton}>
+        <Pressable onPress={() => eventId && router.push({ pathname: '/event/[id]/groups', params: { id: eventId } })} style={styles.primaryButton}>
           <Text style={styles.primaryButtonLabel}>See open buddy groups</Text>
         </Pressable>
       </ScrollView>

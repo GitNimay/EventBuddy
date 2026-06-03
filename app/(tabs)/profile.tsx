@@ -12,9 +12,11 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 
 import { EventCard } from '@/components/EventCard';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useUserBadges, useUserStreak } from '@/hooks/useBadges';
 import { useSavedEvents } from '@/hooks/useEvents';
 import { colors } from '@/theme/colors';
 import { radius } from '@/theme/radius';
@@ -33,6 +35,10 @@ export default function ProfileRoute() {
   const fullName = profile?.full_name ?? authUser?.user_metadata?.full_name ?? 'EventBuddy member';
   const email = profile?.email ?? authUser?.email ?? '';
   const interests: string[] = Array.isArray(profile?.interests) ? profile.interests : [];
+  const userId = profile?.id;
+
+  const streakQuery = useUserStreak(userId);
+  const badgesQuery = useUserBadges(userId);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -56,6 +62,9 @@ export default function ProfileRoute() {
             <Text style={styles.name} numberOfLines={1}>{fullName}</Text>
             <Text style={styles.email} numberOfLines={1}>{email}</Text>
           </View>
+          <Pressable onPress={() => router.push('/profile/settings')} style={styles.settingsBtn}>
+            <Ionicons name="settings-outline" color={colors.muted} size={22} />
+          </Pressable>
         </View>
 
         <View style={styles.segmentWrap}>
@@ -83,6 +92,41 @@ export default function ProfileRoute() {
                 <StatCard label="Trust" value={formatTrustScore(profile?.trust_score)} icon="star-outline" />
                 <StatCard label="Verified" value={profile?.is_verified ? 'Yes' : 'No'} icon="shield-checkmark-outline" />
               </View>
+
+              <View style={styles.streakBadgeRow}>
+                <Pressable
+                  onPress={() => router.push('/profile/badges')}
+                  style={styles.streakBadgeCard}
+                >
+                  <Ionicons name="flame" color={colors.primary} size={20} />
+                  <Text style={styles.streakBadgeValue}>{streakQuery.data?.current_streak ?? 0}</Text>
+                  <Text style={styles.streakBadgeLabel}>Streak</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => router.push('/profile/badges')}
+                  style={styles.streakBadgeCard}
+                >
+                  <Ionicons name="trophy-outline" color={colors.primary} size={20} />
+                  <Text style={styles.streakBadgeValue}>{badgesQuery.data?.length ?? 0}</Text>
+                  <Text style={styles.streakBadgeLabel}>Badges</Text>
+                </Pressable>
+              </View>
+
+              <Pressable onPress={() => router.push('/profile/edit')} style={styles.editBtn}>
+                <Ionicons name="create-outline" color={colors.primary} size={20} />
+                <Text style={styles.editBtnText}>Edit Profile</Text>
+              </Pressable>
+
+              {!profile?.is_verified && (
+                <Pressable onPress={() => router.push('/profile/verify')} style={styles.verifyBanner}>
+                  <Ionicons name="shield-outline" color={colors.primary} size={20} />
+                  <View style={styles.verifyCopy}>
+                    <Text style={styles.verifyTitle}>Verify your identity</Text>
+                    <Text style={styles.verifyBody}>Earn a verified badge.</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" color={colors.muted} size={18} />
+                </Pressable>
+              )}
 
               <View style={styles.sectionCard}>
                 <Text style={styles.sectionTitle}>About</Text>
@@ -180,17 +224,11 @@ function getInitial(name: string) {
 
 function formatLabel(value?: string | null) {
   if (!value) return '';
-
-  return value
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+  return value.split('_').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 }
 
 function formatTrustScore(score?: number | string | null) {
-  const numericScore = Number(score ?? 0);
-
-  return numericScore.toFixed(1);
+  return Number(score ?? 0).toFixed(1);
 }
 
 const styles = StyleSheet.create({
@@ -258,6 +296,13 @@ const styles = StyleSheet.create({
     color: colors.muted,
     marginTop: spacing.xs,
   },
+  settingsBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   segmentWrap: {
     flexDirection: 'row',
     padding: spacing.xs,
@@ -315,6 +360,59 @@ const styles = StyleSheet.create({
     color: colors.muted,
     marginTop: spacing.xs,
   },
+  streakBadgeRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  streakBadgeCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.base,
+    borderRadius: radius.lg,
+    backgroundColor: colors.canvas,
+    borderWidth: 1,
+    borderColor: colors.hairlineSoft,
+  },
+  streakBadgeValue: {
+    ...typography.titleMd,
+    color: colors.ink,
+  },
+  streakBadgeLabel: {
+    ...typography.captionSm,
+    color: colors.muted,
+  },
+  editBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    height: 48,
+    marginBottom: spacing.md,
+  },
+  editBtnText: {
+    ...typography.buttonMd,
+    color: colors.primary,
+  },
+  verifyBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.primaryDisabled,
+    backgroundColor: colors.surfaceSoft,
+    padding: spacing.base,
+    marginBottom: spacing.md,
+  },
+  verifyCopy: { flex: 1 },
+  verifyTitle: { ...typography.titleSm, color: colors.ink },
+  verifyBody: { ...typography.bodySm, color: colors.muted, marginTop: spacing.xs },
   sectionCard: {
     padding: spacing.base,
     borderRadius: radius.lg,

@@ -63,9 +63,21 @@ export function BuddyProfileScreen({ userId }: { userId?: string }) {
             <Ionicons name="arrow-back" color={colors.ink} size={22} />
           </Pressable>
           {!isSelf ? (
-            <Pressable onPress={block} disabled={blockUserMutation.isPending} style={styles.iconButton}>
-              <Ionicons name="ban-outline" color={colors.muted} size={20} />
-            </Pressable>
+            <View style={styles.topBarActions}>
+              {userId ? (
+                <>
+                  <Pressable onPress={() => router.push({ pathname: '/rate/[userId]', params: { userId, userName: profile.full_name ?? 'this buddy' } })} style={styles.iconButton}>
+                    <Ionicons name="star-outline" color={colors.primary} size={20} />
+                  </Pressable>
+                  <Pressable onPress={() => router.push({ pathname: '/report/[userId]', params: { userId, userName: profile.full_name ?? 'this user' } })} style={styles.iconButton}>
+                    <Ionicons name="flag-outline" color={colors.error} size={20} />
+                  </Pressable>
+                </>
+              ) : null}
+              <Pressable onPress={block} disabled={blockUserMutation.isPending} style={styles.iconButton}>
+                <Ionicons name="ban-outline" color={colors.muted} size={20} />
+              </Pressable>
+            </View>
           ) : null}
         </View>
 
@@ -84,6 +96,17 @@ export function BuddyProfileScreen({ userId }: { userId?: string }) {
           <View style={styles.statDivider} />
           <TrustStat label="Joined" value={formatJoinedDate(profile.created_at)} />
         </View>
+
+        {isSelf && !profile.is_verified ? (
+          <Pressable onPress={() => router.push('/profile/verify')} style={styles.verifyBanner}>
+            <Ionicons name="shield-outline" color={colors.primary} size={20} />
+            <View style={styles.verifyBannerCopy}>
+              <Text style={styles.verifyBannerTitle}>Verify your identity</Text>
+              <Text style={styles.verifyBannerBody}>Confirm your email to earn a verified badge.</Text>
+            </View>
+            <Ionicons name="chevron-forward" color={colors.muted} size={18} />
+          </Pressable>
+        ) : null}
 
         <Section title="About">
           <Text style={styles.bodyText}>{profile.bio ?? 'This buddy has not added a bio yet.'}</Text>
@@ -174,9 +197,14 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.canvas },
   content: { padding: spacing.base, paddingBottom: 110 },
   loadingText: { ...typography.bodyMd, color: colors.muted, padding: spacing.base },
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.base },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.base },
+  topBarActions: { flexDirection: 'row', gap: spacing.sm },
   iconButton: { width: 42, height: 42, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceSoft },
   heroAvatar: { width: '100%', aspectRatio: 1, borderRadius: radius.lg, backgroundColor: colors.surfaceSoft, marginBottom: spacing.lg },
+  verifyBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.primaryDisabled, backgroundColor: colors.surfaceSoft, padding: spacing.base, marginBottom: spacing.base },
+  verifyBannerCopy: { flex: 1 },
+  verifyBannerTitle: { ...typography.titleSm, color: colors.ink },
+  verifyBannerBody: { ...typography.bodySm, color: colors.muted, marginTop: spacing.xs },
   heroFallback: { width: '100%', aspectRatio: 1, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceSoft, marginBottom: spacing.lg },
   heroInitial: { ...typography.ratingDisplay, color: colors.muted },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xs },

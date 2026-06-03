@@ -1,0 +1,26 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {
+      colors: {
+        primary: '#ff385c',
+        'primary-active': '#e00b41',
+        'primary-disabled': '#ffd1da',
+        canvas: '#ffffff',
+        'surface-soft': '#f7f7f7',
+        'surface-strong': '#f2f2f2',
+        hairline: '#dddddd',
+        'hairline-soft': '#ebebeb',
+        ink: '#222222',
+        body: '#3f3f3f',
+        muted: '#6a6a6a',
+        'muted-soft': '#929292',
+        error: '#c13515',
+      },
+    },
+  },
+  plugins: [],
+};
